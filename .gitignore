@@ -16,7 +16,7 @@ coverage/
 .metadata
 
 # Android
-a ndroid/.gradle/
+android/.gradle/
 android/local.properties
 
 # iOS
