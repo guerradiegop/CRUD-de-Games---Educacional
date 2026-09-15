@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'database/database_platform.dart';
 import 'pages/home_page.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDatabasePlatform();
   runApp(const GamesApp());
 }
 
