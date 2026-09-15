@@ -1,0 +1,11 @@
+{
+  "name": "GameShelf",
+  "short_name": "GameShelf",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#F8F7FC",
+  "theme_color": "#6650A4",
+  "description": "CRUD educacional de jogos em Flutter com SQLite local.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}
