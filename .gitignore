@@ -31,3 +31,6 @@ windows/flutter/ephemeral/
 
 # Linux
 linux/flutter/ephemeral/
+
+# Backend local - nao versionar credenciais reais
+backend/config.php
