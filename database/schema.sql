@@ -1,0 +1,18 @@
+CREATE DATABASE IF NOT EXISTS games_db
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+
+USE games_db;
+
+CREATE TABLE IF NOT EXISTS games (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name VARCHAR(150) NOT NULL,
+  platform VARCHAR(100) NOT NULL,
+  status ENUM('Quero jogar', 'Jogando', 'Finalizado') NOT NULL DEFAULT 'Quero jogar',
+  rating DECIMAL(3,1) NULL,
+  notes TEXT NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  CONSTRAINT chk_games_rating CHECK (rating IS NULL OR (rating >= 0 AND rating <= 10))
+);
