@@ -28,12 +28,24 @@ class Game {
 
   factory Game.fromMap(Map<String, dynamic> map) {
     return Game(
-      id: map['id'] as int?,
-      name: map['name'] as String,
-      platform: map['platform'] as String,
-      status: map['status'] as String,
-      rating: map['rating'] != null ? (map['rating'] as num).toDouble() : null,
-      notes: map['notes'] as String? ?? '',
+      id: _toInt(map['id']),
+      name: map['name']?.toString() ?? '',
+      platform: map['platform']?.toString() ?? '',
+      status: map['status']?.toString() ?? 'Quero jogar',
+      rating: _toDouble(map['rating']),
+      notes: map['notes']?.toString() ?? '',
     );
+  }
+
+  static int? _toInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
+  }
+
+  static double? _toDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is num) return value.toDouble();
+    return double.tryParse(value.toString());
   }
 }
