@@ -1,137 +1,139 @@
 # CRUD de Games — Educacional
 
-Mini projeto Flutter para controle de jogos, com interface clean, Material 3 e persistência local em SQLite.
+Projeto Flutter de controle de jogos com interface Material 3 e persistência em **MySQL**, acessada por uma **API PHP/PDO**.
 
-## Funcionalidades
-
-- Cadastro de jogos
-- Listagem dos jogos cadastrados
-- Edição de registros
-- Exclusão com confirmação
-- Status: Quero jogar, Jogando e Finalizado
-- Nota de 0 a 10
-- Observações
-- Banco de dados SQLite local
-- Feedback visual com SnackBar
-- Estado vazio e pull-to-refresh
-- Suporte a Windows e navegadores Web
-
-## Plataformas suportadas
-
-- Android/iOS: `sqflite` nativo
-- Windows: SQLite via `sqflite_common_ffi`
-- Web: SQLite/WASM via `sqflite_common_ffi_web`, persistido no IndexedDB do navegador
-
-No navegador o projeto usa o modo sem Web Worker e carrega o `sqlite3.wasm` compatível diretamente do release oficial do pacote `sqlite3`. Assim não é necessário executar o comando manual `sqflite_common_ffi_web:setup` antes de `flutter run`.
-
-> Requisito: Dart 3.12 ou superior, conforme as versões atuais das dependências multiplataforma utilizadas pelo projeto.
-
-## Estrutura
+## Arquitetura
 
 ```text
+Flutter (Windows/Web)
+        |
+        | HTTP/JSON
+        v
+API PHP (backend/games.php)
+        |
+        | PDO
+        v
+MySQL / MySQL Workbench
+```
+
+As credenciais do MySQL ficam somente no backend PHP. O Flutter recebe apenas a URL da API.
+
+## 1. Criar o banco no MySQL Workbench
+
+Abra o arquivo `database/schema.sql` no Workbench e execute o script. Ele cria o banco `games_db` e a tabela `games`.
+
+## 2. Configurar host, porta, banco, usuário e senha
+
+Copie:
+
+```text
+backend/config.example.php
+```
+
+para:
+
+```text
+backend/config.php
+```
+
+Depois edite:
+
+```php
+return [
+    'host' => '127.0.0.1',
+    'port' => 3306,
+    'database' => 'games_db',
+    'username' => 'root',
+    'password' => '',
+    'charset' => 'utf8mb4',
+];
+```
+
+`backend/config.php` não deve ser enviado ao GitHub com credenciais reais.
+
+## 3. Iniciar a API PHP
+
+É necessário PHP com a extensão `pdo_mysql` habilitada.
+
+Na raiz do projeto:
+
+```bash
+php -S localhost:8000
+```
+
+Teste no navegador:
+
+```text
+http://localhost:8000/backend/games.php
+```
+
+A resposta esperada inicialmente é:
+
+```json
+{"data":[]}
+```
+
+Você também pode hospedar a pasta `backend` em Apache/XAMPP/WAMP. Nesse caso, ajuste a URL da API no Flutter.
+
+## 4. Executar o Flutter
+
+```bash
+flutter pub get
+flutter run
+```
+
+Por padrão o app usa:
+
+```text
+http://localhost:8000/backend/games.php
+```
+
+Para usar outro servidor, passe a URL sem alterar o código:
+
+```bash
+flutter run -d windows --dart-define=API_URL=http://192.168.0.10:8000/backend/games.php
+```
+
+```bash
+flutter run -d chrome --dart-define=API_URL=http://localhost:8000/backend/games.php
+```
+
+Em produção use HTTPS.
+
+## Plataformas
+
+- Windows: acesso à API pelo pacote `http`.
+- Web/Chrome/Edge: acesso à mesma API por HTTP/HTTPS.
+- O backend PHP conecta ao MySQL usando PDO.
+
+## CRUD
+
+- `GET /backend/games.php` — lista jogos
+- `POST /backend/games.php` — cadastra jogo
+- `PUT /backend/games.php?id=1` — atualiza jogo
+- `DELETE /backend/games.php?id=1` — exclui jogo
+
+## Estrutura principal
+
+```text
+backend/
+├── config.example.php
+└── games.php
+
+database/
+└── schema.sql
+
 lib/
 ├── database/
-│   ├── database_helper.dart
-│   ├── database_platform.dart
-│   ├── database_platform_io.dart
-│   └── database_platform_web.dart
+│   └── database_helper.dart
 ├── models/
 │   └── game.dart
 ├── pages/
 │   ├── game_form_page.dart
 │   └── home_page.dart
 └── main.dart
-
-web/
-├── index.html
-└── manifest.json
-
-windows/
-├── CMakeLists.txt
-├── flutter/
-└── runner/
 ```
 
-## Tecnologias
+## Segurança
 
-- Flutter
-- Dart
-- Material 3
-- sqflite
-- sqflite_common_ffi
-- sqflite_common_ffi_web
-- sqlite3
-- path
-
-## Como executar
-
-1. Clone o repositório:
-
-```bash
-git clone https://github.com/guerradiegop/CRUD-de-Games---Educacional.git
-cd CRUD-de-Games---Educacional
-```
-
-2. Instale as dependências:
-
-```bash
-flutter pub get
-```
-
-3. Verifique os dispositivos disponíveis:
-
-```bash
-flutter devices
-```
-
-4. Execute normalmente e escolha um dispositivo quando solicitado:
-
-```bash
-flutter run
-```
-
-### Windows
-
-É necessário estar no Windows com o suporte desktop do Flutter habilitado e Visual Studio instalado com a carga de trabalho **Desktop development with C++**.
-
-```bash
-flutter config --enable-windows-desktop
-flutter run -d windows
-```
-
-### Navegador
-
-Com Chrome ou Edge instalado:
-
-```bash
-flutter run -d chrome
-```
-
-ou:
-
-```bash
-flutter run -d edge
-```
-
-Durante a primeira inicialização Web é necessário acesso à internet para carregar o binário oficial `sqlite3.wasm`. Os dados do CRUD permanecem armazenados localmente no IndexedDB do navegador.
-
-## Banco de dados
-
-A aplicação cria automaticamente um banco lógico chamado `games.db` com a tabela:
-
-```sql
-CREATE TABLE games (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  platform TEXT NOT NULL,
-  status TEXT NOT NULL,
-  rating REAL,
-  notes TEXT NOT NULL DEFAULT ''
-);
-```
-
-No Windows o banco é um arquivo SQLite local. No Web, o sistema de arquivos virtual do SQLite é persistido dentro do IndexedDB do navegador.
-
-## Objetivo educacional
-
-O projeto foi mantido propositalmente simples para demonstrar, de forma didática, o fluxo completo de um CRUD em Flutter com armazenamento SQL local e princípios básicos de UI/UX em múltiplas plataformas.
+Nunca coloque host, usuário e senha do MySQL diretamente no Flutter, principalmente em aplicações Web. Código cliente pode ser inspecionado. A API funciona como a camada responsável por proteger a conexão e executar comandos SQL preparados.
