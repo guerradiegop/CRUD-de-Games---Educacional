@@ -1,66 +1,91 @@
-import 'package:sqflite/sqflite.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../models/game.dart';
-import 'database_platform.dart';
 
 class DatabaseHelper {
   DatabaseHelper._();
 
   static final DatabaseHelper instance = DatabaseHelper._();
-  static Database? _database;
 
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
+  static const String _apiUrl = String.fromEnvironment(
+    'API_URL',
+    defaultValue: 'http://localhost:8000/backend/games.php',
+  );
 
-  Future<Database> _initDatabase() async {
-    final path = await resolveDatabasePath('games.db');
+  Uri get _endpoint => Uri.parse(_apiUrl);
 
-    return openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE games (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            platform TEXT NOT NULL,
-            status TEXT NOT NULL,
-            rating REAL,
-            notes TEXT NOT NULL DEFAULT ''
-          )
-        ''');
-      },
-    );
+  Map<String, String> get _headers => const {
+        'Content-Type': 'application/json; charset=UTF-8',
+        'Accept': 'application/json',
+      };
+
+  Future<List<Game>> getGames() async {
+    final response = await http.get(_endpoint, headers: _headers);
+    _ensureSuccess(response);
+
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final items = decoded['data'] as List<dynamic>? ?? const [];
+
+    return items
+        .map((item) => Game.fromMap(item as Map<String, dynamic>))
+        .toList();
   }
 
   Future<int> insertGame(Game game) async {
-    final db = await database;
-    final data = game.toMap()..remove('id');
-    return db.insert('games', data);
-  }
+    final response = await http.post(
+      _endpoint,
+      headers: _headers,
+      body: jsonEncode(game.toMap()..remove('id')),
+    );
+    _ensureSuccess(response);
 
-  Future<List<Game>> getGames() async {
-    final db = await database;
-    final result = await db.query('games', orderBy: 'name COLLATE NOCASE ASC');
-    return result.map(Game.fromMap).toList();
+    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+    final data = decoded['data'] as Map<String, dynamic>?;
+    return _parseInt(data?['id']) ?? 0;
   }
 
   Future<int> updateGame(Game game) async {
-    final db = await database;
-    final data = game.toMap()..remove('id');
-    return db.update(
-      'games',
-      data,
-      where: 'id = ?',
-      whereArgs: [game.id],
+    if (game.id == null) {
+      throw ArgumentError('O jogo precisa de um id para ser atualizado.');
+    }
+
+    final response = await http.put(
+      _endpoint.replace(queryParameters: {'id': game.id.toString()}),
+      headers: _headers,
+      body: jsonEncode(game.toMap()..remove('id')),
     );
+    _ensureSuccess(response);
+    return 1;
   }
 
   Future<int> deleteGame(int id) async {
-    final db = await database;
-    return db.delete('games', where: 'id = ?', whereArgs: [id]);
+    final response = await http.delete(
+      _endpoint.replace(queryParameters: {'id': id.toString()}),
+      headers: _headers,
+    );
+    _ensureSuccess(response);
+    return 1;
+  }
+
+  void _ensureSuccess(http.Response response) {
+    if (response.statusCode >= 200 && response.statusCode < 300) return;
+
+    String message = 'Erro ${response.statusCode} ao acessar a API.';
+    try {
+      final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+      message = decoded['message']?.toString() ?? message;
+    } catch (_) {
+      // Mantem a mensagem padrao quando a resposta nao e JSON.
+    }
+
+    throw Exception(message);
+  }
+
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    return int.tryParse(value.toString());
   }
 }
